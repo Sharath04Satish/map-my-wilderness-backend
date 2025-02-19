@@ -1,0 +1,17 @@
+package nationalParkPackage;
+syntax="proto3";
+
+message NationalPark {
+    string id = 1;
+    string url = 2;
+    string name = 3;
+    string parkCode = 4;
+    string latitude = 5;
+    string longitude = 6;
+    string states = 7;
+    string _id = 8;
+}
+
+message NationalParksList {
+  repeated NationalPark nationalParks = 1;
+}

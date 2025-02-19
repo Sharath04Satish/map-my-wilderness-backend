@@ -1,7 +1,8 @@
-require('dotenv').config();
-const axios = require("axios");
+import dotenv from 'dotenv';
+dotenv.config();
+import axios from "axios";
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+import { MongoClient, ServerApiVersion } from 'mongodb';
 const uri = `${process.env.MONGO_DB_URI}`;
 
 const client = new MongoClient(uri, {
@@ -24,6 +25,8 @@ async function run(data) {
             const options = { ordered: true };
             const result = await collection.insertMany(data, options);
             console.log(`${result.insertedCount} documents were inserted`);
+        } else {
+            console.log("Delete failed");
         }
     } finally {
         await client.close();
@@ -48,10 +51,10 @@ axios.get(`https://developer.nps.gov/api/v1/parks?limit=${responseLimit}`, {
 });
 
 const handleResponseData = (data) => {
-    responseData = []
-    np_data = data.forEach(site => {
+    let responseData = []
+    data.forEach(site => {
         if (site?.fullName?.includes("National Park")) {
-            trimmedSite = {
+            const trimmedSite = {
                 "id": site.id,
                 "url": site.url,
                 "name": site.fullName,
