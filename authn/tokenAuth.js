@@ -18,7 +18,7 @@ export const generateIdToken = async (fullName, emailAddress) => {
         const database = client.db(`${process.env.MONGO_DB_NAME}`);
         const collection = database.collection(`${process.env.MONGO_DB_COLLECTION_USERS}`);
 
-        const isUserRegistered = await collection.findOne({"emailAddress": emailAddress});
+        const isUserRegistered = await collection.findOne({ "emailAddress": emailAddress });
         if (isUserRegistered) {
             console.log("User is registered");
         } else {
@@ -47,7 +47,7 @@ export const generateIdToken = async (fullName, emailAddress) => {
     const endDb = performance.now();
     console.log(endDb - stDb);
     // [ ] Performance metrics show that verifying if a user exists in the db takes approximately 600ms. This shows the utility for using Redis cache to verify if a user exists, possible through bloom filters. 
-
+    
     return await new SignJWT({ 'sub': emailAddress, 'name': fullName })
         .setProtectedHeader({ alg: `${process.env.PUBLIC_KEY_ALGORITHM}`, typ: 'JWT' })
         .setIssuedAt()
