@@ -25,6 +25,7 @@
     "express": "^4.21.2",
     "jose": "^6.0.8",
     "mongodb": "^6.13.0",
-    "protobufjs": "^7.4.0"
+    "protobufjs": "^7.4.0",
+    "redis": "^4.7.0"
   }
 }
