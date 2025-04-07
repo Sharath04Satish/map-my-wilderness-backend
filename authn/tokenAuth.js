@@ -9,15 +9,17 @@ import "../closeConnections.js";
 dotenv.config({ path: "../.env" });
 
 export const getIdToken = async (fullName, emailAddress) => {
-    const userJwtKeyName = "user:" + emailAddress + ":jwt";
+    const userJwtKeyName = "user:jwt:" + emailAddress;
     const userJwtKeyValue = await redisClient.get(userJwtKeyName);
-    if (value) {
+    if (userJwtKeyValue) {
+        console.log("Cache hit");
         return userJwtKeyValue;
     }
     else {
+        console.log("Cache miss");
         const newJwt = await generateIdToken(fullName, emailAddress);
         if (newJwt) {
-            await redisClient.set(userJwtKeyName, newJwt);
+            await redisClient.set(userJwtKeyName, newJwt, { EX: parseInt(`${process.env.JWT_EXPIRATION_SECONDS}`) });
             return newJwt;
         }
     }
@@ -27,12 +29,6 @@ export const generateIdToken = async (fullName, emailAddress) => {
     // [x] Validate if user exists in the database.
     // [x] If not, create a new user, and then generate the token.
     // [ ] While bloom filters sound amazing, they aren't useful for this specific scenario. Instead use redis to store user's email address after checking it from the redis database and making a trip to the persistant database in case of cache miss.
-    try {
-        const value = await redisClient.get('key');
-        console.log(value);
-    } catch (err) {
-        console.error(err.message);
-    }
     try {
         console.log("Connected to database");
 
@@ -91,7 +87,7 @@ export const verifyIdToken = async (token) => {
                     if (currentDT >= issuedAtDT && currentDT <= expirationDT) {
                         // TODO Validate user from database.
                         return true;
-                    }
+                    } 
                 }
             }
         }
@@ -103,21 +99,18 @@ export const verifyIdToken = async (token) => {
 };
 
 // JWT Workflow
-// 1. Use getIdToken() to check if the user's JWT is stored in the redis cache.
-// 2. If yes, use verifyIdToken to determine if the token is still valid.
+// [x] Use getIdToken() to check if the user's JWT is stored in the redis cache.
+// [x] If yes, use verifyIdToken to determine if the token is still valid.
 // 3. If yes, the user is authorized to access the underlying APIs in the system.
 // 4. If step 1 is false, generate a new token for the user if the user is already registered in the database, and store it in the cache.
 // 5. If not, register the user and store the token in cache.
 // 6. If step 2 is false, generate a new token for the user and store it in the cache.
 
-const startJwt = performance.now();
-const token = await generateIdToken("Sharath Satish", "sharaths1998@gmail.com");
-console.log(new Blob([token]).size);
-const endJwt = performance.now();
-console.log(endJwt - startJwt);
-
 const startJwtVal = performance.now();
-const isValidToken = await verifyIdToken(token);
+const idToken = await getIdToken("Sharath Satish", "sharaths1998@gmail.com");
+console.log(idToken);
+
+const isValidToken = await verifyIdToken(idToken);
 const endJwtVal = performance.now();
 console.log(endJwtVal - startJwtVal);
 console.log(isValidToken);
