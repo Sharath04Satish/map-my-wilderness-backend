@@ -8,6 +8,21 @@ import "../closeConnections.js";
 
 dotenv.config({ path: "../.env" });
 
+export const getIdToken = async (fullName, emailAddress) => {
+    const userJwtKeyName = "user:" + emailAddress + ":jwt";
+    const userJwtKeyValue = await redisClient.get(userJwtKeyName);
+    if (value) {
+        return userJwtKeyValue;
+    }
+    else {
+        const newJwt = await generateIdToken(fullName, emailAddress);
+        if (newJwt) {
+            await redisClient.set(userJwtKeyName, newJwt);
+            return newJwt;
+        }
+    }
+}
+
 export const generateIdToken = async (fullName, emailAddress) => {
     // [x] Validate if user exists in the database.
     // [x] If not, create a new user, and then generate the token.
@@ -46,8 +61,6 @@ export const generateIdToken = async (fullName, emailAddress) => {
         }
     } catch (ex) {
         console.error(ex)
-    } finally {
-        await mongoClient.close();
     }
 
     // [ ] Performance metrics show that verifying if a user exists in the db takes approximately 600ms. This shows the utility for using Redis cache to verify if a user exists, possible through bloom filters. 
@@ -89,8 +102,17 @@ export const verifyIdToken = async (token) => {
     }
 };
 
+// JWT Workflow
+// 1. Use getIdToken() to check if the user's JWT is stored in the redis cache.
+// 2. If yes, use verifyIdToken to determine if the token is still valid.
+// 3. If yes, the user is authorized to access the underlying APIs in the system.
+// 4. If step 1 is false, generate a new token for the user if the user is already registered in the database, and store it in the cache.
+// 5. If not, register the user and store the token in cache.
+// 6. If step 2 is false, generate a new token for the user and store it in the cache.
+
 const startJwt = performance.now();
 const token = await generateIdToken("Sharath Satish", "sharaths1998@gmail.com");
+console.log(new Blob([token]).size);
 const endJwt = performance.now();
 console.log(endJwt - startJwt);
 
