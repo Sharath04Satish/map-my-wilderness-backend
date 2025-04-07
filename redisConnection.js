@@ -11,3 +11,20 @@ export const redisClient = createClient({
         reconnectStrategy: retries => retries > 3 ? new Error('Maximum reconnection attempts exceeded.') : 1000
     }
 });
+
+try {
+    (async () => {
+        await redisClient.connect();
+    })();
+} catch (err) {
+    console.erroe("Unable to establish a connection to redis database due to", err.message);
+}
+
+export const closeRedisConnection = async () => {
+    try {
+        await redisClient.quit();
+        console.log("Redis client disconnected.");
+    } catch (err) {
+        console.error("Unable to close redis connection due to", err.message);
+    } 
+}

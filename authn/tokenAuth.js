@@ -1,21 +1,27 @@
 import { SignJWT, jwtVerify } from "jose";
 import { publicKey, privateKey } from "./getKeyPair.js";
 import dotenv from 'dotenv';
-import { getDbClient } from "../dbConnection.js";
+import { mongoClient } from "../dbConnection.js";
 import { performance } from "node:perf_hooks";
+import { redisClient } from "../redisConnection.js";
+import "../closeConnections.js";
 
 dotenv.config({ path: "../.env" });
 
 export const generateIdToken = async (fullName, emailAddress) => {
     // [x] Validate if user exists in the database.
     // [x] If not, create a new user, and then generate the token.
-    const stDb = performance.now();
-    const client = await getDbClient();
+    // [ ] While bloom filters sound amazing, they aren't useful for this specific scenario. Instead use redis to store user's email address after checking it from the redis database and making a trip to the persistant database in case of cache miss.
     try {
-        await client.connect();
+        const value = await redisClient.get('key');
+        console.log(value);
+    } catch (err) {
+        console.error(err.message);
+    }
+    try {
         console.log("Connected to database");
 
-        const database = client.db(`${process.env.MONGO_DB_NAME}`);
+        const database = mongoClient.db(`${process.env.MONGO_DB_NAME}`);
         const collection = database.collection(`${process.env.MONGO_DB_COLLECTION_USERS}`);
 
         const isUserRegistered = await collection.findOne({ "emailAddress": emailAddress });
@@ -41,11 +47,9 @@ export const generateIdToken = async (fullName, emailAddress) => {
     } catch (ex) {
         console.error(ex)
     } finally {
-        await client.close();
+        await mongoClient.close();
     }
 
-    const endDb = performance.now();
-    console.log(endDb - stDb);
     // [ ] Performance metrics show that verifying if a user exists in the db takes approximately 600ms. This shows the utility for using Redis cache to verify if a user exists, possible through bloom filters. 
     
     return await new SignJWT({ 'sub': emailAddress, 'name': fullName })
